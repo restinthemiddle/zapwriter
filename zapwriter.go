@@ -14,24 +14,6 @@ type Writer struct {
 	Logger *zap.Logger
 }
 
-type header struct {
-	Name  string
-	Value string
-}
-
-type row struct {
-	Time_RFC3339 string
-	Method       string
-	Schema       string
-	Host         string
-	Path         string
-	Query        string
-	Headers      []header
-	Body         string
-}
-
-var headers []header
-
 func (w Writer) LogRequest(request *http.Request) (err error) {
 	query := ""
 	rawQuery := request.URL.RawQuery
@@ -39,9 +21,10 @@ func (w Writer) LogRequest(request *http.Request) (err error) {
 		query = fmt.Sprintf("?%s", rawQuery)
 	}
 
+	headers := make([]string, 0)
 	for name, values := range request.Header {
 		for _, value := range values {
-			headers = append(headers, header{name, value})
+			headers = append(headers, fmt.Sprintf("%s: %s", name, value))
 		}
 	}
 
@@ -64,6 +47,7 @@ func (w Writer) LogRequest(request *http.Request) (err error) {
 		zap.String("http_host", request.URL.Host),
 		zap.String("request", request.URL.Path),
 		zap.String("args", query),
+		zap.Strings("headers", headers),
 		zap.String("body", bodyString),
 	)
 
@@ -89,9 +73,10 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		query = fmt.Sprintf("?%s", rawQuery)
 	}
 
+	headers := make([]string, 0)
 	for name, values := range response.Request.Header {
 		for _, value := range values {
-			headers = append(headers, header{name, value})
+			headers = append(headers, fmt.Sprintf("%s: %s", name, value))
 		}
 	}
 
@@ -114,6 +99,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		zap.String("http_host", response.Request.URL.Host),
 		zap.String("request", response.Request.URL.Path),
 		zap.String("args", query),
+		zap.Strings("headers", headers),
 		zap.String("body", bodyString),
 	)
 
