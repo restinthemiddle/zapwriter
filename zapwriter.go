@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/restinthemiddle/core"
 	"go.uber.org/zap"
 )
 
@@ -102,8 +103,8 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		zap.String("args", query),
 		zap.Strings("headers", headers),
 		zap.String("body", bodyString),
-		zap.Time("roundtrip_start", response.Request.Context().Value("roundTripStart").(time.Time)),
-		zap.Time("roundtrip_end", response.Request.Context().Value("roundTripEnd").(time.Time)),
+		zap.Time("roundtrip_start", response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)),
+		zap.Time("roundtrip_end", response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)),
 	)
 
 	return nil
