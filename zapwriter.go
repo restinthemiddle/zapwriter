@@ -75,24 +75,51 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		query = fmt.Sprintf("?%s", rawQuery)
 	}
 
-	headers := make([]string, 0)
+	requestHeaders := make([]string, 0)
 	for name, values := range response.Request.Header {
 		for _, value := range values {
-			headers = append(headers, fmt.Sprintf("%s: %s", name, value))
+			requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", name, value))
 		}
 	}
 
-	bodyString := ""
+	requestBodyString := ""
 	if response.Request.ContentLength > 0 {
-		bodyBytes, err := ioutil.ReadAll(response.Request.Body)
+		requestBodyBytes, err := ioutil.ReadAll(response.Request.Body)
 		if err != nil {
 			log.Fatal(err)
 			panic(err)
 		}
 
-		response.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		response.Request.Body = ioutil.NopCloser(bytes.NewBuffer(requestBodyBytes))
 
-		bodyString = string(bodyBytes)
+		requestBodyString = string(requestBodyBytes)
+	}
+
+	connectionStart := response.Request.Context().Value(core.ProfilingContextKey("connectionStart")).(time.Time)
+	connectionEnd := response.Request.Context().Value(core.ProfilingContextKey("connectionEnd")).(time.Time)
+	connectionDuration := connectionEnd.Sub(connectionStart)
+
+	roundTripStart := response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)
+	roundTripEnd := response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)
+	roundTripDuration := roundTripEnd.Sub(roundTripStart)
+
+	responseHeaders := make([]string, 0)
+	for name, values := range response.Header {
+		for _, value := range values {
+			responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", name, value))
+		}
+	}
+
+	responseBodyString := ""
+	if response.ContentLength > 0 {
+		responseBodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
+		response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBodyBytes))
+
+		responseBodyString = fmt.Sprintf("Content: %s\n", string(responseBodyBytes))
 	}
 
 	w.Logger.Info("failed to fetch URL",
@@ -101,35 +128,16 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		zap.String("http_host", response.Request.URL.Host),
 		zap.String("request", response.Request.URL.Path),
 		zap.String("args", query),
-		zap.Strings("headers", headers),
-		zap.String("body", bodyString),
-		zap.Time("roundtrip_start", response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)),
-		zap.Time("roundtrip_end", response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)),
+		zap.Strings("request_headers", requestHeaders),
+		zap.String("post_body", requestBodyString),
+		zap.Time("connection_start", connectionStart),
+		zap.Duration("connection_duration", connectionDuration),
+		zap.Time("roundtrip_start", roundTripStart),
+		zap.Duration("roundtrip_duration", roundTripDuration),
+		zap.Strings("response_headers", responseHeaders),
+		zap.Int64("body_bytes_sent", response.ContentLength),
+		zap.String("response_body", responseBodyString),
 	)
 
 	return nil
-
-	// title := fmt.Sprintf("RESPONSE - Code: %d\n", response.StatusCode)
-
-	// headers := ""
-	// for key, element := range response.Header {
-	// 	headers += fmt.Sprintf("%s: %s\n", key, element)
-	// }
-
-	// bodyString := ""
-	// if response.ContentLength > 0 {
-	// 	bodyBytes, err := ioutil.ReadAll(response.Body)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 		panic(err)
-	// 	}
-
-	// 	response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	// 	bodyString = fmt.Sprintf("Content: %s\n", string(bodyBytes))
-	// }
-
-	// log.Printf("%s%s%s", title, headers, bodyString)
-
-	// return err
 }
