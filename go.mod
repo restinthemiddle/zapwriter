@@ -3,7 +3,7 @@ module github.com/restinthemiddle/zapwriter
 go 1.17
 
 require (
-	github.com/restinthemiddle/core v0.0.0-20220104015200-0af3c5a1a636
+	github.com/restinthemiddle/core/v2 v2.0.0-20220105003406-a5f93e824ebb
 	go.uber.org/zap v1.19.1
 )
 

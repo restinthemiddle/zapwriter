@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/restinthemiddle/core"
+	"github.com/restinthemiddle/core/v2"
 	"go.uber.org/zap"
 )
 
