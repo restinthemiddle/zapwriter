@@ -69,6 +69,8 @@ func (w Writer) LogRequest(request *http.Request) (err error) {
 }
 
 func (w Writer) LogResponse(response *http.Response) (err error) {
+	w.LogRequest(response.Request)
+
 	query := ""
 	rawQuery := response.Request.URL.RawQuery
 	if len(rawQuery) > 0 {
